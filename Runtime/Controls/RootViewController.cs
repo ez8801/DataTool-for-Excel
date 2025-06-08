@@ -9,6 +9,8 @@ using EZ.DataTool.Settings;
 using EZ.DataTool.Model;
 using EZ.Data;
 using System.Threading.Tasks;
+using System.Data;
+
 #if UNITY_EDITOR
 using UnityEditor;
 using UnityEditor.UIElements;
@@ -34,7 +36,7 @@ namespace EZ.DataTool
 
 		public RootViewController(RootView rootView, ICloser closer)
         {
-			_rootView = rootView;
+            _rootView = rootView;
 			_rootView.SetListener(this);
 			_rootView.SetToolbarListener(this);
 			
@@ -162,7 +164,7 @@ namespace EZ.DataTool
 			}
 		}
 
-		public void OnTableLoaded()
+        public void OnTableLoaded()
 		{
 			var firstRowNum = _loadedTable.FirstRowNum;
 			var rowCount = _loadedTable.DataTable.Rows.Count - firstRowNum;
@@ -187,23 +189,37 @@ namespace EZ.DataTool
 			columnsView.SetItemsSource(_loadedTable.Columns);
 
 			var mclv = _rootView.MultiColumnListView;
-			_rootView.MultiColumnListViewControl.SetEditMode();
-			mclv.columns.Clear();
+            mclv.Clear();
+
+            _rootView.MultiColumnListViewControl.SetEditMode();
+            
+            mclv.columns.Clear();
 			foreach (var columnData in _loadedTable.Columns)
 			{
 				var title = columnData.Name;
 				var column = new Column() { title = title };
-				column.minWidth = Mathf.Max(title.Length * 10, 82);
-				mclv.columns.Add(column);
+                column.minWidth = Mathf.Max(title.Length * 10, 100);
+
+                //column.minWidth = Mathf.Max(title.Length * 10, 82);
+                mclv.columns.Add(column);
 			}
 
-			mclv.Clear();
+            var rowCollection = new List<System.Data.DataRow>();
+            for (var i = firstRowNum; i < _loadedTable.DataTable.Rows.Count; i++)
+            {
+                var row = _loadedTable.DataTable.Rows[i];				
+                rowCollection.Add(row);
+            }
+			_rootView.MultiColumnListViewControl.DisableEditMode();
+            mclv.itemsSource = rowCollection;
+
+            /*
 			var rowCollection = new List<System.Data.DataRow>();
 			var builder = new System.Text.StringBuilder();
 			for (var i = firstRowNum; i < _loadedTable.DataTable.Rows.Count; i++)
 			{
 				var row = _loadedTable.DataTable.Rows[i];
-				var items = row.ItemArray.Where((value, index) =>
+                var items = row.ItemArray.Where((value, index) =>
 				{
 					return _loadedTable.Columns.FindIndex(x => x.Ordinal == index + 1) != -1;
 				}).Select(x => x).ToArray();
@@ -215,8 +231,9 @@ namespace EZ.DataTool
 			//Debug.Log(builder.ToString());
 			_rootView.MultiColumnListViewControl.DisableEditMode();
 			mclv.itemsSource = rowCollection;
+			*/
 
-			columnsView.RefreshItems();
+            columnsView.RefreshItems();
 			// mclv.Rebuild();
 			mclv.RefreshItems();
 
@@ -374,14 +391,23 @@ namespace EZ.DataTool
 				var firstRowNum = _loadedTable.FirstRowNum;
 				var builder = new System.Text.StringBuilder();
 
-				builder.AppendLine(MakeTsvText(_loadedTable.Columns.Select(x => x.Name)));
+				builder.AppendLine(MakeTsvText(_loadedTable.Columns
+                    .Where(x => x.IsValid() && x.Contains())
+                    .Select(x => x.Name)));
 				for (int i = firstRowNum; i < _loadedTable.DataTable.Rows.Count; i++)
 				{
 					var row = _loadedTable.DataTable.Rows[i];
-					var items = row.ItemArray.Where((value, index) =>
-					{
-						return _loadedTable.Columns.FindIndex(x => x.Ordinal == index + 1) != -1;
-					}).Select(x => x.ToString());
+					var items = _loadedTable.Columns
+						.Where(x => x.IsValid() && x.Contains())
+						.Select(x => x.Ordinal - 1)
+						.Select(x => row.ItemArray[x].ToString())
+						.ToList();
+
+     //               var items = row.ItemArray.Where((value, index) =>
+					//{
+					//	var num = _loadedTable.Columns.FindIndex(x => x.Ordinal == index + 1);
+     //                   return num != -1;
+					//}).Select(x => x.ToString()).ToList();
 
 					// var items = row.ItemArray.Select(x => x.ToObject<string>());
 					builder.AppendLine(MakeTsvText(items));

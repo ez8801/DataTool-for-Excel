@@ -13,7 +13,11 @@ namespace EZ.Data
 
     public interface IDataTable
     {
+        int RecordCount { get; }
         string GetName();
+        DataRecord CreateNewRecord();
+        void AddRecord(DataRecord record);
+        void OnLoaded();
     }
 
     public class DataTable<T> : IDataTable where T : DataRecord, new()
@@ -69,11 +73,17 @@ namespace EZ.Data
                 record.Deserialize(lineElements);
                 dbf.AddRecord(record);
             }
+            dbf.OnLoaded();
             return dbf;
 #else
             // Unsupported
             return null;
 #endif
+        }
+
+        public virtual void OnLoaded()
+        {
+
         }
 
         public string GetName() => _name;
@@ -84,6 +94,11 @@ namespace EZ.Data
             _recordsById.Clear();
         }
 
+        public T GetRecord(string key)
+        {
+            return GetRecord(key.GetHashCode());
+        }
+
         public T GetRecord(int id)
         {
             T record;
@@ -92,6 +107,61 @@ namespace EZ.Data
         }
 
         public T GetRecord(Predicate<T> match) => _records.Find(match);
+
+        public T GetRecordAt(int index)
+        {
+            if (!(index < 0 || index >= RecordCount))
+            {
+                return _records[index];
+            }
+            return default;
+        }
+
+        public T GetLastRecord()
+        {
+            var recordCount = RecordCount;
+            if (recordCount > 0)
+            {
+                return GetRecordAt(recordCount - 1);
+            }
+            return default;
+        }
+
+        public bool TryGetRecord(string key, out T record)
+        {
+            if (!string.IsNullOrEmpty(key))
+            {
+                if (HasRecord(key))
+                {
+                    record = GetRecord(key);
+                    return true;
+                }                
+            }
+
+            record = null;
+            return false;
+        }
+
+        public bool TryGetRecord(int key, out T record)
+        {
+            if (HasRecord(key))
+            {
+                record = GetRecord(key);
+                return true;
+            }
+
+            record = null;
+            return false;
+        }
+
+        public bool HasRecord(string key)
+        {
+            if (!string.IsNullOrEmpty(key))
+            {
+                return _recordsById.ContainsKey(key.GetHashCode());
+            }
+            return false;
+        }
 
         public bool HasRecord(int id)
         {

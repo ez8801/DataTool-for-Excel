@@ -75,13 +75,20 @@ namespace EZ.DataTool.Loader
 
             var firstRow = sheet.Rows[0];
             int columnCount = firstRow.ItemArray.Length;
-            int rowCount = sheet.Rows.Count;
+            // int rowCount = sheet.Rows.Count;
 
             for (int i = 0; i < columnCount; i++)
             {
                 var column = new DbfColumn();
                 ReadHeader(ref sheet, ref column, i);
 
+                if (string.IsNullOrEmpty(column.Name)
+                    && false == column.IsValid())
+                {
+                    continue;
+                }
+
+                /*
                 // Comment Column
                 if (false == column.IsValid())
                 {
@@ -94,6 +101,7 @@ namespace EZ.DataTool.Loader
                     //Debug.LogWarning($"Not Client Column: {column.ValueType} {column.Name} ({column.Filter})");
                     continue;
                 }
+                */
 
                 column.SetOrdinal(i + 1);
                 dataTableContext.Columns.Add(column);

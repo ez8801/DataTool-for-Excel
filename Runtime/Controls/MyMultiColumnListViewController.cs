@@ -7,17 +7,18 @@ namespace EZ.DataTool
 	public class MyMultiColumnListViewController : MultiColumnListViewController
 	{
 		private MultiColumnListView _mclv;
-		private UnityEngine.Pool.ObjectPool<Label> _pool;
 		private bool _editMode;
+        private LabelPool _labelPool;
 
-		public MyMultiColumnListViewController(Columns columns,
+        public MyMultiColumnListViewController(Columns columns,
 			SortColumnDescriptions sortDescriptions,
 			List<SortColumnDescription> sortedColumns)
 			: base(columns, sortDescriptions, sortedColumns)
 		{
-			_pool = new UnityEngine.Pool.ObjectPool<Label>(CreatePooledItem, OnTakeFromPool, OnReturnedToPool, maxSize: 300);
 			_editMode = false;
-		}
+			_labelPool = new LabelPool();
+
+        }
 
 		public void SetEditMode()
         {
@@ -28,22 +29,6 @@ namespace EZ.DataTool
         {
 			_editMode = false;
         }
-
-		private void OnTakeFromPool(Label label)
-		{
-			label.style.display = DisplayStyle.Flex;
-		}
-
-		private Label CreatePooledItem()
-		{
-			return new Label();
-		}
-
-		void OnReturnedToPool(Label label)
-		{
-			label.style.display = DisplayStyle.None;
-			label.text = string.Empty;
-		}
 
 		protected override void PrepareView()
 		{
@@ -91,8 +76,8 @@ namespace EZ.DataTool
 				//	view.style.borderRightColor = color;
 				//view.style.borderRightWidth = 1f;
 
-				var label = new Label();
-				collectionViewItem.Add(label);
+				var label = _labelPool.Get();
+                collectionViewItem.Add(label);
 			}
 			//Debug.Log("MakeItem");
 			return collectionViewItem;
@@ -116,7 +101,7 @@ namespace EZ.DataTool
 			//else
 			//	Debug.Log($"DestroyItem({element.name})");
 
-			//Release(element);
+			Release(element);
 			//_mclv.Remove(element);
 		}
 
@@ -127,7 +112,9 @@ namespace EZ.DataTool
 				if (child is Label label)
 				{
 					if (label.style.display == DisplayStyle.Flex)
-						_pool.Release(label);
+					{
+						_labelPool.Release(label);
+					}
 				}
 			}
 		}

@@ -10,8 +10,9 @@ namespace EZ.DataTool.TextTemplate
     public class TextTemplate
     {
         public string DefaultTemplate =
-@"[MemoryPack.MemoryPackable]
-public partial class @nameDataRecord : EZ.Data.DataRecord 
+@"using EZ.Data;
+
+public partial class @nameDataRecord : DataRecord 
 {
 @fields
 
@@ -48,6 +49,9 @@ public partial class @nameDataRecord : EZ.Data.DataRecord
             for (int i = 0; i < args.Context.Columns.Count; i++)
             {
                 var column = args.Context.Columns[i];
+                if (column.Filter == ColumnFilter.None)
+                    continue;
+
                 string typeName = new ValueTypeName(column.ValueType);
                 var columnName = column.Name;
                 if (column.Key == KeyType.PrimaryKey)
@@ -74,14 +78,17 @@ public partial class @nameDataRecord : EZ.Data.DataRecord
         {
             builder.Clear();
             indentLevel = 2;
-            for (int i = 0; i < args.Context.Columns.Count; i++)
+            for (int i = 0, j = 0; i < args.Context.Columns.Count; i++)
             {
                 var column = args.Context.Columns[i];
+                if (column.Filter == ColumnFilter.None)
+                    continue;
+                
                 Indent(builder);
 
                 if (column.ValueType == ValueType.String)
                 {
-                    builder.AppendLine($"{column.Name} = fields[{i}];");
+                    builder.AppendLine($"{column.Name} = fields[{j}];");
 
                     if (column.Key == KeyType.PrimaryKey)
                     {
@@ -93,10 +100,11 @@ public partial class @nameDataRecord : EZ.Data.DataRecord
                 {
                     var convertMethodName = GetConvertMethodName(column.ValueType);
                     if (column.Key == KeyType.PrimaryKey)
-                        builder.AppendLine($"ID = SafeConvert.{convertMethodName}(fields[{i}]);");
+                        builder.AppendLine($"ID = SafeConvert.{convertMethodName}(fields[{j}]);");
                     else
-                        builder.AppendLine($"{column.Name} = SafeConvert.{convertMethodName}(fields[{i}]);");
+                        builder.AppendLine($"{column.Name} = SafeConvert.{convertMethodName}(fields[{j}]);");
                 }
+                j++;
             }
 
             RemoveLastNewLine(builder);

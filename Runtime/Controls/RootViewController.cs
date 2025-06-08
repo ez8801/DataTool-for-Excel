@@ -469,7 +469,11 @@ namespace EZ.DataTool
 
 				});
 
-				dropdownMenu.DropDown(helpButton.worldBound, _rootView.RootVisualElement);
+#if UNITY_6000_0_OR_NEWER
+				dropdownMenu.DropDown(helpButton.worldBound, _rootView.RootVisualElement, false, false);
+#else
+                dropdownMenu.DropDown(helpButton.worldBound, _rootView.RootVisualElement);
+#endif
 			}
 		}
 
@@ -524,10 +528,15 @@ namespace EZ.DataTool
 			{
 				_closer?.Close();
 			});
-			dropdownMenu.DropDown(fileButton.worldBound, _rootView.RootVisualElement);
-		}
+#if UNITY_6000_0_OR_NEWER
+			dropdownMenu.DropDown(fileButton.worldBound, _rootView.RootVisualElement, false, false);
+#else
+            dropdownMenu.DropDown(fileButton.worldBound, _rootView.RootVisualElement);
+#endif
 
-		void IToolbar.OnClickFile()
+        }
+
+        void IToolbar.OnClickFile()
 		{
 #if UNITY_EDITOR
 			if (false == _rootView.RuntimeOnly)
